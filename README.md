@@ -201,7 +201,7 @@ GET /sncf/_search
 
 ---
 
-## ✅ Checklist de validation
+## Checklist de validation
 
 | Critère | Commande de vérification |
 |---|---|
