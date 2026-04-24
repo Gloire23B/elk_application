@@ -1,0 +1,21 @@
+date;axe;depart;arrivee;trains_programmes;trains_circules;trains_annules;trains_retards;regularite
+2011-09;Paris-Lyon;Paris Gare de Lyon;Lyon Part-Dieu;150;145;2;8;94.67
+2011-09;Paris-Lyon;Paris Gare de Lyon;Lyon Perrache;80;78;1;4;95.0
+2011-10;Paris-Lyon;Paris Gare de Lyon;Lyon Part-Dieu;155;152;2;7;95.35
+2011-10;Paris-Lyon;Paris Gare de Lyon;Lyon Perrache;82;80;1;3;96.34
+2011-11;Paris-Lyon;Paris Gare de Lyon;Lyon Part-Dieu;160;158;1;6;96.25
+2011-11;Paris-Lyon;Paris Gare de Lyon;Lyon Perrache;85;83;1;2;97.59
+2011-12;Paris-Lyon;Paris Gare de Lyon;Lyon Part-Dieu;165;162;2;5;95.76
+2011-12;Paris-Lyon;Paris Gare de Lyon;Lyon Perrache;88;86;1;3;96.59
+2012-01;Paris-Lyon;Paris Gare de Lyon;Lyon Part-Dieu;170;167;2;4;96.47
+2012-01;Paris-Lyon;Paris Gare de Lyon;Lyon Perrache;90;88;1;2;97.78
+2012-02;Paris-Marseille;Paris Gare de Lyon;Marseille Saint-Charles;120;115;3;6;94.12
+2012-02;Paris-Marseille;Paris Gare de Lyon;Marseille Saint-Charles;118;114;2;5;95.0
+2012-03;Paris-Marseille;Paris Gare de Lyon;Marseille Saint-Charles;125;121;2;4;96.0
+2012-03;Paris-Marseille;Paris Gare de Lyon;Marseille Saint-Charles;122;119;2;3;97.54
+2012-04;Bordeaux-Paris;Bordeaux Saint-Jean;Paris Gare de Lyon;140;135;3;7;94.29
+2012-04;Bordeaux-Paris;Bordeaux Saint-Jean;Paris Gare de Lyon;138;134;2;6;95.65
+2012-05;Bordeaux-Paris;Bordeaux Saint-Jean;Paris Gare de Lyon;145;141;2;5;96.55
+2012-05;Bordeaux-Paris;Bordeaux Saint-Jean;Paris Gare de Lyon;143;139;2;4;97.18
+2012-06;Nantes-Paris;Nantes;Paris Montparnasse;130;126;3;5;95.35
+2012-06;Nantes-Paris;Nantes;Paris Montparnasse;128;124;2;4;96.88
