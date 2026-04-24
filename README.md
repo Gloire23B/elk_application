@@ -1,10 +1,10 @@
-# 📘 TP ELK — Guide complet d'exécution
+# TP ELK — Guide complet d'exécution
 # Basé sur le repo officiel : https://github.com/elomedah/tp-elk
 # Version stack : 7.9.1
 
 ---
 
-## 🐛 BUGS CORRIGÉS DANS LE REPO ORIGINAL
+## BUGS CORRIGÉS DANS LE REPO ORIGINAL
 
 | Fichier original | Bug | Correction |
 |---|---|---|
@@ -23,9 +23,9 @@ tp-elk/
 ├── tp-config/
 │   ├── test.conf                              ← Test basique stdin→stdout
 │   ├── logstash_short_sncf.conf               ← CSV court sans filtre
-│   ├── logstash_short_sncf_with_filter.conf   ← CSV court + transformations ✅ corrigé
-│   ├── logstash_sncf.conf                     ← CSV complet → ES ✅ corrigé
-│   └── logstash-sncf-elastic.conf             ← CSV complet → ES ✅ corrigé
+│   ├── logstash_short_sncf_with_filter.conf   ← CSV court + transformations corrigé
+│   ├── logstash_sncf.conf                     ← CSV complet → corrigé
+│   └── logstash-sncf-elastic.conf             ← CSV complet → corrigé
 └── tp-data/
     ├── regularite-mensuelle-tgv-short.csv     ← 20 lignes réelles SNCF
     └── regularite-mensuelle-tgv.csv           ← 5000 lignes réelles SNCF (2011→2015)
