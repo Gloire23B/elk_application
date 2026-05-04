@@ -3,38 +3,38 @@
 ## 1. Fonctionnalités implémentées
 
 ### Backend Spring Boot
-- ✅ Architecture en couches : Controller → Service → Repository + Kafka Producer/Consumer
-- ✅ API REST sécurisée (Spring Security, HTTP Basic)
-- ✅ CORS configuré via `CorsConfigurationSource` (requis pour les appels cross-origin du frontend)
-- ✅ Gestion d'erreurs centralisée (`GlobalExceptionHandler`)
-- ✅ Validation stricte des inputs (regex ISO 4217 sur les devises)
-- ✅ Logging structuré avec SLF4J
+- Architecture en couches : Controller → Service → Repository + Kafka Producer/Consumer
+- API REST sécurisée (Spring Security, HTTP Basic)
+- CORS configuré via `CorsConfigurationSource` (requis pour les appels cross-origin du frontend)
+- Gestion d'erreurs centralisée (`GlobalExceptionHandler`)
+- Validation stricte des inputs (regex ISO 4217 sur les devises)
+- Logging structuré avec SLF4J
 
 ### Kafka
-- ✅ Topic `exchange-rates` : 3 partitions, retention 7 jours
-- ✅ Producer : publication JSON standard `{base, timestamp, rates}`
-- ✅ Producer idempotent (acks=all, retries=3)
-- ✅ Consumer : 3 threads (1 par partition)
-- ✅ Clé de partitionnement = devise (USD, EUR...) → ordre garanti par devise
+- Topic `exchange-rates` : 3 partitions, retention 7 jours
+- Producer : publication JSON standard `{base, timestamp, rates}`
+- Producer idempotent (acks=all, retries=3)
+- Consumer : 3 threads (1 par partition)
+- Clé de partitionnement = devise (USD, EUR...) → ordre garanti par devise
 
 ### Elasticsearch
-- ✅ Template d'index avec mapping `dynamic: strict`
-- ✅ Champ `rates` en type `flattened` pour requêtes dynamiques
-- ✅ Indexation avec `indexedAt` (date précise) et `timestamp` (date métier)
-- ✅ Repository Spring Data ES avec méthodes de requête nommées
+- Template d'index avec mapping `dynamic: strict`
+- Champ `rates` en type `flattened` pour requêtes dynamiques
+- Indexation avec `indexedAt` (date précise) et `timestamp` (date métier)
+- Repository Spring Data ES avec méthodes de requête nommées
 
 ### Kibana
-- ✅ Dashboard importable via NDJSON (`kibana/exchange-rate-dashboard.ndjson`)
-- ✅ 3 visualisations Lens : courbe EUR/USD, tableau des devises, camembert de distribution
-- ✅ Index Pattern lié au champ temporel `indexedAt`
-- ✅ Rafraîchissement automatique toutes les 60 secondes
+- Dashboard importable via NDJSON (`kibana/exchange-rate-dashboard.ndjson`)
+- 3 visualisations Lens : courbe EUR/USD, tableau des devises, camembert de distribution
+- Index Pattern lié au champ temporel `indexedAt`
+- Rafraîchissement automatique toutes les 60 secondes
 
 ### Frontend Tailwind
-- ✅ Dashboard responsive avec auto-refresh 60s
-- ✅ Indicateur temps réel (variations ▲▼ par rapport au fetch précédent)
-- ✅ Sélecteur de devise de base (USD, EUR, GBP, JPY, CHF, CAD)
-- ✅ Stats rapides : nombre de devises, EUR/USD, GBP/USD, JPY/USD
-- ✅ Fallback démo si API indisponible
+- Dashboard responsive avec auto-refresh 60s
+- Indicateur temps réel (variations ▲▼ par rapport au fetch précédent)
+- Sélecteur de devise de base (USD, EUR, GBP, JPY, CHF, CAD)
+- Stats rapides : nombre de devises, EUR/USD, GBP/USD, JPY/USD
+- Fallback démo si API indisponible
 
 ---
 
@@ -64,13 +64,13 @@
 ## 3. Tests — Résultats
 
 ```
-ExchangeRateServiceTest     : 6/6  ✅
-ExchangeRateControllerTest  : 6/6  ✅
-ExchangeRateProducerTest    : 5/5  ✅
-ExchangeRateConsumerTest    : 4/4  ✅
-ExchangeRateRepositoryTest  : 5/5  ✅
+ExchangeRateServiceTest     : 6/6 
+ExchangeRateControllerTest  : 6/6 
+ExchangeRateProducerTest    : 5/5 
+ExchangeRateConsumerTest    : 4/4 
+ExchangeRateRepositoryTest  : 5/5 
 ───────────────────────────────────
-TOTAL                       : 26/26 ✅  BUILD SUCCESS
+TOTAL                       : 26/26 BUILD SUCCESS
 ```
 
 ---
@@ -104,13 +104,13 @@ TOTAL                       : 26/26 ✅  BUILD SUCCESS
 
 | Composant | Difficulté | Commentaire |
 |-----------|-----------|-------------|
-| Spring Boot Setup | ⭐⭐ | Straightforward avec Spring Initializr |
-| Kafka Producer/Consumer | ⭐⭐⭐ | Sérialisation JSON + partitionnement |
-| Elasticsearch | ⭐⭐⭐ | Mapping dynamique + Spring Data |
-| Spring Security + CORS | ⭐⭐⭐ | Config HttpSecurity Spring 6.x + CorsConfigurationSource |
-| Tests MockMvc + Security | ⭐⭐⭐⭐ | @WithMockUser + @Import SecurityConfig |
-| Dashboard Tailwind Temps Réel | ⭐⭐⭐ | Polling + delta visualization |
-| Dashboard Kibana Lens (NDJSON) | ⭐⭐⭐⭐⭐ | Format Lens 8.x, pipeline de migration interne Kibana, résolution des références par nom — aucune documentation officielle claire sur le format NDJSON d'import |
+| Spring Boot Setup | 2 | Straightforward avec Spring Initializr |
+| Kafka Producer/Consumer | 3 | Sérialisation JSON + partitionnement |
+| Elasticsearch | 3 | Mapping dynamique + Spring Data |
+| Spring Security + CORS | 3 | Config HttpSecurity Spring 6.x + CorsConfigurationSource |
+| Tests MockMvc + Security | 4 | @WithMockUser + @Import SecurityConfig |
+| Dashboard Tailwind Temps Réel | 3 | Polling + delta visualization |
+| Dashboard Kibana Lens (NDJSON) | 5 | Format Lens 8.x, pipeline de migration interne Kibana, résolution des références par nom — aucune documentation officielle claire sur le format NDJSON d'import |
 
 ---
 

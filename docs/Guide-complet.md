@@ -510,9 +510,9 @@ echo "Documents USD après  : $APRES"
 
 # 5. Vérifier l'incrémentation
 if [ "$APRES" -gt "$AVANT" ]; then
-  echo "✅ Flux bout en bout OK — +$((APRES - AVANT)) document(s)"
+  echo " Flux bout en bout OK — +$((APRES - AVANT)) document(s)"
 else
-  echo "⚠️  Aucun nouveau document — vérifier les logs Kafka/Consumer"
+  echo " Aucun nouveau document — vérifier les logs Kafka/Consumer"
 fi
 ```
 
