@@ -1,0 +1,5 @@
+D:\exchange-rate-proxy\src\test\java\com\proxy\exchangerate\controller\ExchangeRateControllerTest.java
+D:\exchange-rate-proxy\src\test\java\com\proxy\exchangerate\kafka\consumer\ExchangeRateConsumerTest.java
+D:\exchange-rate-proxy\src\test\java\com\proxy\exchangerate\repository\ExchangeRateRepositoryTest.java
+D:\exchange-rate-proxy\src\test\java\com\proxy\exchangerate\service\ExchangeRateServiceTest.java
+D:\exchange-rate-proxy\src\test\java\com\proxy\exchangerate\kafka\producer\ExchangeRateProducerTest.java

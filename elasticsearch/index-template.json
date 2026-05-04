@@ -1,0 +1,21 @@
+{
+  "index_patterns": ["exchange-rates*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "5s"
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "id":          { "type": "keyword" },
+        "base":        { "type": "keyword" },
+        "timestamp":   { "type": "keyword" },
+        "indexedAt":   { "type": "date", "format": "yyyy-MM-dd'T'HH:mm:ss||strict_date_optional_time" },
+        "source":      { "type": "keyword" },
+        "rates":       { "type": "flattened" }
+      }
+    }
+  }
+}

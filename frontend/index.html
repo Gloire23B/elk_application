@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exchange Rate Proxy — Dashboard Temps Réel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    .rate-up   { color: #10b981; }
+    .rate-down { color: #ef4444; }
+    .rate-same { color: #6b7280; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-mono">
+
+  <!-- ===== HEADER ===== -->
+  <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-green-400 pulse-dot"></div>
+      <span class="text-lg font-bold tracking-tight text-white">Exchange Rate Proxy</span>
+      <span class="text-xs text-gray-500 ml-2">— Temps Réel via Kafka + Elasticsearch</span>
+    </div>
+    <div class="flex items-center gap-4 text-sm">
+      <span id="last-update" class="text-gray-400">Dernière MAJ : —</span>
+      <button onclick="refreshAll()"
+        class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded text-xs font-semibold transition-colors">
+        ↻ Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== STATS RAPIDES ===== -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 py-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1">DEVISES ACTIVES</div>
+      <div id="stat-currencies" class="text-2xl font-bold text-indigo-400">—</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1">EUR / USD</div>
+      <div id="stat-eur" class="text-2xl font-bold text-green-400">—</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1">GBP / USD</div>
+      <div id="stat-gbp" class="text-2xl font-bold text-yellow-400">—</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1">JPY / USD</div>
+      <div id="stat-jpy" class="text-2xl font-bold text-pink-400">—</div>
+    </div>
+  </div>
+
+  <!-- ===== SÉLECTEUR DEVISE BASE ===== -->
+  <div class="px-6 mb-4 flex items-center gap-3">
+    <label class="text-xs text-gray-400 uppercase tracking-widest">Devise base :</label>
+    <div class="flex gap-2" id="currency-buttons"></div>
+    <div id="loading-indicator" class="hidden ml-3">
+      <div class="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  </div>
+
+  <!-- ===== TABLEAU DES TAUX ===== -->
+  <main class="px-6 pb-8">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
+        <span class="text-sm font-semibold text-gray-300">
+          Taux de change — Base : <span id="current-base" class="text-indigo-400">USD</span>
+        </span>
+        <span class="text-xs text-gray-600" id="doc-id">—</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
+              <th class="px-5 py-3 text-left">Devise</th>
+              <th class="px-5 py-3 text-right">Taux</th>
+              <th class="px-5 py-3 text-right">Inverse</th>
+              <th class="px-5 py-3 text-left hidden md:table-cell">Nom</th>
+              <th class="px-5 py-3 text-center">Variation</th>
+            </tr>
+          </thead>
+          <tbody id="rates-table-body">
+            <tr>
+              <td colspan="5" class="px-5 py-8 text-center text-gray-600">
+                Chargement des taux...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Statut connexion API -->
+    <div id="api-status" class="mt-4 p-3 rounded-lg text-xs hidden"></div>
+  </main>
+
+  <script>
+    // ========== Configuration ==========
+    const API_BASE  = 'http://localhost:8090/api/exchange-rates';
+    const API_USER  = 'api-user';
+    const API_PASS  = 'proxy-secret-2026';
+    const AUTH_HDR  = 'Basic ' + btoa(API_USER + ':' + API_PASS);
+    const REFRESH_MS = 60000; // 60 secondes
+
+    const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD'];
+    const CURRENCY_NAMES = {
+      USD:'Dollar US', EUR:'Euro', GBP:'Livre Sterling', JPY:'Yen Japonais',
+      CHF:'Franc Suisse', CAD:'Dollar Canadien', AUD:'Dollar Australien',
+      CNY:'Yuan Chinois', INR:'Roupie Indienne', BRL:'Réal Brésilien',
+      MXN:'Peso Mexicain', KRW:'Won Coréen', SGD:'Dollar Singapour',
+      HKD:'Dollar Hong Kong', NOK:'Couronne Norvégienne', SEK:'Couronne Suédoise',
+      DKK:'Couronne Danoise', NZD:'Dollar Néo-Zélandais', ZAR:'Rand Sud-Africain',
+      TRY:'Livre Turque',
+    };
+
+    let currentBase   = 'USD';
+    let previousRates = {};
+
+    // ========== Boutons devise ==========
+    function buildCurrencyButtons() {
+      const container = document.getElementById('currency-buttons');
+      CURRENCIES.forEach(cur => {
+        const btn = document.createElement('button');
+        btn.id      = 'btn-' + cur;
+        btn.textContent = cur;
+        btn.className = (cur === currentBase)
+          ? 'px-3 py-1 rounded text-xs font-bold bg-indigo-600 text-white transition-colors'
+          : 'px-3 py-1 rounded text-xs font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors';
+        btn.onclick = () => { currentBase = cur; switchBase(cur); };
+        container.appendChild(btn);
+      });
+    }
+
+    function switchBase(cur) {
+      CURRENCIES.forEach(c => {
+        const b = document.getElementById('btn-' + c);
+        if (b) b.className = (c === cur)
+          ? 'px-3 py-1 rounded text-xs font-bold bg-indigo-600 text-white transition-colors'
+          : 'px-3 py-1 rounded text-xs font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors';
+      });
+      document.getElementById('current-base').textContent = cur;
+      previousRates = {};
+      loadRates(cur);
+    }
+
+    // ========== Chargement taux ==========
+    async function loadRates(base) {
+      document.getElementById('loading-indicator').classList.remove('hidden');
+      try {
+        const res = await fetch(`${API_BASE}/latest/${base}`, {
+          headers: { 'Authorization': AUTH_HDR, 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          renderRates(json.data);
+          showStatus(null);
+        } else {
+          showStatus('Erreur API : ' + (json.error || 'Inconnu'), 'error');
+        }
+      } catch (e) {
+        showStatus('⚠️ API indisponible — Affichage des données de démonstration', 'warn');
+        renderRates(getDemoData(base));
+      } finally {
+        document.getElementById('loading-indicator').classList.add('hidden');
+      }
+    }
+
+    function renderRates(doc) {
+      const tbody = document.getElementById('rates-table-body');
+      const now   = new Date().toLocaleTimeString('fr-FR');
+      document.getElementById('last-update').textContent = 'Dernière MAJ : ' + now;
+      document.getElementById('doc-id').textContent = doc.id || '';
+
+      // Mise à jour stats
+      const r = doc.rates || {};
+      document.getElementById('stat-currencies').textContent = Object.keys(r).length;
+      document.getElementById('stat-eur').textContent = r['EUR'] ? r['EUR'].toFixed(4) : '—';
+      document.getElementById('stat-gbp').textContent = r['GBP'] ? r['GBP'].toFixed(4) : '—';
+      document.getElementById('stat-jpy').textContent = r['JPY'] ? r['JPY'].toFixed(2) : '—';
+
+      // Tableau des taux
+      const sorted = Object.entries(r).sort(([a],[b]) => a.localeCompare(b));
+      tbody.innerHTML = sorted.map(([currency, rate]) => {
+        const prev   = previousRates[currency];
+        const arrow  = prev == null ? '' : (rate > prev ? '▲' : rate < prev ? '▼' : '—');
+        const cls    = prev == null ? 'rate-same' : (rate > prev ? 'rate-up' : rate < prev ? 'rate-down' : 'rate-same');
+        const inv    = rate > 0 ? (1 / rate).toFixed(6) : '—';
+        const name   = CURRENCY_NAMES[currency] || currency;
+        return `
+          <tr class="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors fade-in">
+            <td class="px-5 py-3 font-bold text-indigo-300">${currency}</td>
+            <td class="px-5 py-3 text-right font-semibold text-white">${rate.toFixed(6)}</td>
+            <td class="px-5 py-3 text-right text-gray-400">${inv}</td>
+            <td class="px-5 py-3 hidden md:table-cell text-gray-500 text-xs">${name}</td>
+            <td class="px-5 py-3 text-center text-xs ${cls}">${arrow}</td>
+          </tr>`;
+      }).join('');
+      previousRates = { ...r };
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('api-status');
+      if (!msg) { el.classList.add('hidden'); return; }
+      el.textContent = msg;
+      el.className = 'mt-4 p-3 rounded-lg text-xs ' +
+        (type === 'error' ? 'bg-red-900/40 text-red-300 border border-red-800' :
+         type === 'warn'  ? 'bg-yellow-900/40 text-yellow-300 border border-yellow-800' :
+                            'bg-green-900/40 text-green-300 border border-green-800');
+      el.classList.remove('hidden');
+    }
+
+    function refreshAll() { loadRates(currentBase); }
+
+    // ========== Données de démo (API non dispo) ==========
+    function getDemoData(base) {
+      const demos = {
+        USD: { id:'DEMO_USD', base:'USD', timestamp: new Date().toISOString().slice(0,10),
+          rates:{EUR:0.9203,GBP:0.7891,JPY:149.52,CHF:0.8934,CAD:1.3621,AUD:1.5234,
+                 CNY:7.2341,INR:83.45,BRL:4.9812,MXN:17.234,KRW:1342.5,SGD:1.3412} },
+        EUR: { id:'DEMO_EUR', base:'EUR', timestamp: new Date().toISOString().slice(0,10),
+          rates:{USD:1.0865,GBP:0.8571,JPY:162.45,CHF:0.9700,CAD:1.4789,AUD:1.6543,
+                 CNY:7.8562,INR:90.67,BRL:5.4123,JPY:162.45} },
+      };
+      return demos[base] || demos['USD'];
+    }
+
+    // ========== Init ==========
+    buildCurrencyButtons();
+    loadRates(currentBase);
+    setInterval(() => loadRates(currentBase), REFRESH_MS);
+  </script>
+</body>
+</html>
