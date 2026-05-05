@@ -6,6 +6,17 @@
 
 ## Prérequis
 
+### Mode Docker complet (recommandé)
+
+| Outil | Version minimale | Vérification |
+|-------|-----------------|--------------|
+| Docker Desktop | 24.x | `docker --version` |
+| curl | tout | `curl --version` |
+
+Java et Maven ne sont **pas nécessaires** pour faire tourner le stack en mode Docker.
+
+### Mode développement local (alternative)
+
 | Outil | Version minimale | Vérification |
 |-------|-----------------|--------------|
 | Docker Desktop | 24.x | `docker --version` |
@@ -21,26 +32,64 @@
 
 ---
 
-## Étape 1 — Démarrer l'infrastructure Docker
+## Étape 1 — Démarrer le stack complet
+
+### Mode Docker complet (recommandé)
+
+Une seule commande lance Kafka, Elasticsearch, Kibana **et** Spring Boot :
 
 ```bash
-docker-compose up -d kafka elasticsearch kibana
+# Premier lancement : build de l'image Spring Boot inclus (~3 min la première fois)
+docker-compose up --build -d
+
+# Les suivants : image déjà buildée, démarrage en ~30s
+docker-compose up -d
 ```
 
-Attendre que les trois conteneurs soient healthy (environ 30–60 secondes) :
+Vérifier que tout est up :
 
 ```bash
-docker ps --format "table {{.Names}}\t{{.Status}}"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
 Résultat attendu :
 
 ```
-NAMES                    STATUS
-proxy-kafka              Up X seconds (healthy)
-proxy-elasticsearch      Up X seconds (healthy)
-proxy-kibana             Up X seconds
+NAMES                     STATUS                   PORTS
+proxy-elasticsearch       Up X min (healthy)       0.0.0.0:9200->9200/tcp
+proxy-kafka               Up X min (healthy)       0.0.0.0:9092->9092/tcp
+proxy-kibana              Up X min                 0.0.0.0:5601->5601/tcp
+exchange-rate-proxy-app   Up X min                 0.0.0.0:8090->8090/tcp
 ```
+
+Suivre les logs Spring Boot :
+
+```bash
+docker-compose logs -f exchange-rate-proxy
+```
+
+Attendre la ligne de confirmation (~40–60s dans Docker) :
+
+```
+Started ExchangeRateProxyApplication in XX.XXX seconds
+exchange-rate-consumers: partitions assigned: [exchange-rates-0]
+exchange-rate-consumers: partitions assigned: [exchange-rates-1]
+exchange-rate-consumers: partitions assigned: [exchange-rates-2]
+```
+
+### Mode développement local (alternative)
+
+Si tu veux lancer Spring Boot hors Docker (pour le rechargement rapide pendant le développement) :
+
+```bash
+# Lancer uniquement l'infrastructure
+docker-compose up -d kafka elasticsearch kibana
+
+# Lancer Spring Boot localement
+mvn spring-boot:run
+```
+
+Attendre que `proxy-kafka` et `proxy-elasticsearch` soient `(healthy)` avant de lancer `mvn spring-boot:run`.
 
 ### Vérifier Elasticsearch
 
@@ -84,19 +133,23 @@ Résultat attendu :
 
 ---
 
-## Étape 3 — Compiler et démarrer l'application
+## Étape 3 — Vérifier le démarrage de l'application
+
+En mode Docker, Spring Boot démarre automatiquement avec le stack (Étape 1). Il n'y a pas de `mvn spring-boot:run` à exécuter.
+
+Pour confirmer que l'application est prête :
 
 ```bash
-mvn spring-boot:run
+docker-compose logs exchange-rate-proxy | grep -E "Started|partitions assigned"
 ```
 
-Attendre les logs de démarrage (environ 10–15 secondes) :
+Ou directement via l'actuator :
 
-```
-INFO  [ExchangeRateProxyApplication] - Started ExchangeRateProxyApplication in X.XXX seconds
+```bash
+curl -s http://localhost:8090/actuator/health
 ```
 
-> En cas d'erreurs Lombok (cannot find symbol `getBase()`, `builder()`...) vérifier que `pom.xml` contient bien `<lombok.version>1.18.36</lombok.version>`.
+> **Mode développement local** : si tu utilises `mvn spring-boot:run`, Lombok a été **entièrement supprimé** du projet (incompatible avec Java 25). Le code compile avec des getters/setters explicites — aucune dépendance Lombok requise.
 
 ### Vérifier l'état applicatif
 
@@ -538,15 +591,45 @@ fi
 ## Troubleshooting
 
 ### L'application ne démarre pas — erreur Kafka connection refused
-Kafka n'est pas encore prêt. Vérifier le statut Docker :
+
+En mode Docker, `exchange-rate-proxy-app` attend automatiquement que Kafka soit healthy grâce au `depends_on`. Si l'erreur persiste :
+
 ```bash
-docker-compose ps
-
-#ou
-
+# Vérifier le statut de tous les conteneurs
 docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# Voir les logs détaillés de l'app
+docker-compose logs exchange-rate-proxy
+
+# Redémarrer le stack
+docker-compose restart exchange-rate-proxy
 ```
-Attendre que `proxy-kafka` soit `(healthy)` avant de lancer `mvn spring-boot:run`.
+
+En mode développement local : attendre que `proxy-kafka` soit `(healthy)` avant `mvn spring-boot:run`.
+
+### Elasticsearch unhealthy au démarrage
+
+Au premier lancement sur un volume vide, ES prend 60–90s à s'initialiser. Le `start_period: 90s` dans `docker-compose.yml` lui laisse ce délai avant que les health checks commencent. Si le problème persiste :
+
+```bash
+# Vérifier l'état réel d'Elasticsearch
+docker inspect proxy-elasticsearch --format '{{json .State.Health.Status}}'
+
+# Forcer un redémarrage
+docker-compose restart elasticsearch
+```
+
+### Port 8090 déjà utilisé
+
+Si une instance Java locale tourne encore sur le port 8090 :
+
+```powershell
+# Trouver le PID
+netstat -ano | findstr ":8090"
+
+# Arrêter le processus (remplacer XXXX par le PID trouvé)
+Stop-Process -Id XXXX -Force
+```
 
 ### Le frontend affiche "API indisponible"
 L'API Spring Boot n'est pas accessible depuis l'origine du frontend. Vérifier :
@@ -561,10 +644,11 @@ L'API Spring Boot n'est pas accessible depuis l'origine du frontend. Vérifier :
 ### Kibana — erreur 500 à l'import du NDJSON
 Le NDJSON contient des `typeMigrationVersion` calibrés pour Kibana 8.11.0. Sur une autre version, l'import peut échouer. Vérifier : `curl -s http://localhost:5601/api/status | python -c "import sys,json; print(json.load(sys.stdin)['version']['number'])"`
 
-### Tests unitaires — Lombok `cannot find symbol`
-Vérifier la version Java et Lombok :
+### Tests unitaires — `cannot find symbol`
+
+Lombok a été **entièrement supprimé** du projet (toutes les versions sont incompatibles avec Java 25). Les annotations `@Data`, `@Builder`, `@Getter` etc. ont été remplacées par du code Java standard dans `ExchangeRateDocument`, `ExchangeRateApiResponse` et `ApiResponse`. Si cette erreur apparaît, vérifier que ces fichiers ne contiennent plus d'imports Lombok :
+
 ```bash
-java --version          # doit être 17+
-mvn dependency:tree | grep lombok   # doit afficher 1.18.36
+grep -r "import lombok" src/
+# Doit retourner aucun résultat
 ```
-Si Lombok < 1.18.36, vérifier que `<lombok.version>1.18.36</lombok.version>` est bien dans les `<properties>` du `pom.xml`.

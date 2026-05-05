@@ -1,0 +1,5 @@
+com\proxy\exchangerate\repository\ExchangeRateRepositoryTest.class
+com\proxy\exchangerate\service\ExchangeRateServiceTest.class
+com\proxy\exchangerate\kafka\producer\ExchangeRateProducerTest.class
+com\proxy\exchangerate\controller\ExchangeRateControllerTest.class
+com\proxy\exchangerate\kafka\consumer\ExchangeRateConsumerTest.class

@@ -2,10 +2,6 @@ package com.proxy.exchangerate.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
@@ -14,60 +10,88 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * Document Elasticsearch — Taux de change.
- *
- * Format JSON Kafka standard :
- * {
- *   "base": "USD",
- *   "timestamp": "2026-04-20",
- *   "rates": {}
- * }
- *
- * BUG #3 ANTICIPÉ ET CORRIGÉ :
- *   L'index Elasticsearch était défini en dur "exchange-rates" sans suffixe de date.
- *   Solution : indexNameFunction utilisé (voir ExchangeRateRepository) pour indexation mensuelle.
- */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Document(indexName = "exchange-rates")
 public class ExchangeRateDocument {
 
-    /** Identifiant ES unique : base_timestamp */
     @Id
     private String id;
 
-    /** Devise de base (ex: USD, EUR) */
     @Field(type = FieldType.Keyword)
     private String base;
 
-    /** Date de récupération (format ISO) */
     @Field(type = FieldType.Keyword, name = "timestamp")
     private String timestamp;
 
-    /** Carte des taux : devise → taux */
     @Field(type = FieldType.Object)
     private Map<String, Double> rates;
 
-    /** Horodatage d'indexation */
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime indexedAt;
 
-    /** Source des données */
     @Field(type = FieldType.Keyword)
     private String source;
 
-    /**
-     * Retourne le taux pour une devise donnée.
-     * @param currency code devise (ex: "EUR")
-     * @return taux ou null si non disponible
-     */
+    public ExchangeRateDocument() {}
+
+    public ExchangeRateDocument(String id, String base, String timestamp,
+                                Map<String, Double> rates, LocalDateTime indexedAt, String source) {
+        this.id = id;
+        this.base = base;
+        this.timestamp = timestamp;
+        this.rates = rates;
+        this.indexedAt = indexedAt;
+        this.source = source;
+    }
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getBase() { return base; }
+    public void setBase(String base) { this.base = base; }
+
+    public String getTimestamp() { return timestamp; }
+    public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+
+    public Map<String, Double> getRates() { return rates; }
+    public void setRates(Map<String, Double> rates) { this.rates = rates; }
+
+    public LocalDateTime getIndexedAt() { return indexedAt; }
+    public void setIndexedAt(LocalDateTime indexedAt) { this.indexedAt = indexedAt; }
+
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
+
     public Double getRateFor(String currency) {
         if (rates == null || currency == null) return null;
         return rates.get(currency.toUpperCase());
+    }
+
+    public static Builder builder() { return new Builder(); }
+
+    public static class Builder {
+        private String id;
+        private String base;
+        private String timestamp;
+        private Map<String, Double> rates;
+        private LocalDateTime indexedAt;
+        private String source;
+
+        public Builder id(String id) { this.id = id; return this; }
+        public Builder base(String base) { this.base = base; return this; }
+        public Builder timestamp(String timestamp) { this.timestamp = timestamp; return this; }
+        public Builder rates(Map<String, Double> rates) { this.rates = rates; return this; }
+        public Builder indexedAt(LocalDateTime indexedAt) { this.indexedAt = indexedAt; return this; }
+        public Builder source(String source) { this.source = source; return this; }
+
+        public ExchangeRateDocument build() {
+            return new ExchangeRateDocument(id, base, timestamp, rates, indexedAt, source);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "ExchangeRateDocument{id='" + id + "', base='" + base + "', timestamp='" + timestamp + "'}";
     }
 }

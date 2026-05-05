@@ -2,24 +2,9 @@ package com.proxy.exchangerate.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-/**
- * DTO — Réponse de l'API externe exchangerate-api.com.
- *
- * Exemple de réponse :
- * {
- *   "result": "success",
- *   "base_code": "USD",
- *   "time_last_update_utc": "Fri, 20 Apr 2026 00:00:01 +0000",
- *   "rates": { "EUR": 0.92, "GBP": 0.79, ... }
- * }
- */
-@Data
-@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExchangeRateApiResponse {
 
@@ -29,7 +14,6 @@ public class ExchangeRateApiResponse {
     @JsonProperty("base_code")
     private String baseCode;
 
-    /** Compatibilité avec l'endpoint /v4/latest/{base} */
     @JsonProperty("base")
     private String base;
 
@@ -45,18 +29,35 @@ public class ExchangeRateApiResponse {
     @JsonProperty("rates")
     private Map<String, Double> rates;
 
-    /**
-     * Retourne le code de devise de base, quel que soit le format de l'API.
-     */
+    public ExchangeRateApiResponse() {}
+
+    public String getResult() { return result; }
+    public void setResult(String result) { this.result = result; }
+
+    public String getBaseCode() { return baseCode; }
+    public void setBaseCode(String baseCode) { this.baseCode = baseCode; }
+
+    public String getBase() { return base; }
+    public void setBase(String base) { this.base = base; }
+
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
+
+    public String getTimeLastUpdateUtc() { return timeLastUpdateUtc; }
+    public void setTimeLastUpdateUtc(String v) { this.timeLastUpdateUtc = v; }
+
+    public String getTimeNextUpdateUtc() { return timeNextUpdateUtc; }
+    public void setTimeNextUpdateUtc(String v) { this.timeNextUpdateUtc = v; }
+
+    public Map<String, Double> getRates() { return rates; }
+    public void setRates(Map<String, Double> rates) { this.rates = rates; }
+
     public String resolveBase() {
         if (baseCode != null && !baseCode.isBlank()) return baseCode;
         if (base != null && !base.isBlank()) return base;
         return "USD";
     }
 
-    /**
-     * Vérifie que la réponse est valide.
-     */
     public boolean isValid() {
         return rates != null && !rates.isEmpty() && resolveBase() != null;
     }
