@@ -118,24 +118,38 @@ exchange-rate-proxy/
 Une seule commande lance tout le stack : Kafka, Elasticsearch, Kibana **et** Spring Boot.
 
 ```bash
-# 1. Premier lancement (build de l'image Spring Boot inclus)
-docker-compose up --build -d
+# 1. Premier lancement
+docker-compose up -d
 
 # 2. Vérifier que tout est up
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+ou
+
+docker-compose ps
 
 # 3. Suivre les logs de l'application
 docker-compose logs -f exchange-rate-proxy
 
 # 4. Importer le dashboard Kibana
-curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" \
-  -H "kbn-xsrf: true" \
+curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" `
+  -H "kbn-xsrf: true" `
   --form file=@kibana/exchange-rate-dashboard.ndjson
 
+ou en une seule ligne
+
+curl -X POST "http://localhost:5601/api/saved_objects/_import?overwrite=true" -H "kbn-xsrf: true" --form file=@kibana/exchange-rate-dashboard.ndjson
+
+
 # 5. Tester l'API
+curl -u api-user:proxy-secret-2026 `
+  http://localhost:8090/api/exchange-rates/latest/USD
+
+ou en une seule ligne
 curl -u api-user:proxy-secret-2026 http://localhost:8090/api/exchange-rates/latest/USD
 
 # 6. Dashboard Tailwind → ouvrir frontend/index.html dans un navigateur
+
 # 7. Kibana → http://localhost:5601 → Analytics → Dashboards
 ```
 
